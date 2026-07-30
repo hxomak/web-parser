@@ -1,28 +1,38 @@
 #include <iostream>
 #include <string>
 
-#include "include/WPParser.h"
+#include <curl/curl.h>
+#include <gumbo.h>
+
+#include "Wrapper.h"
 
 using namespace std;
 
 int main() {
-    cout << "This is test programm" << std::endl;
+    curl_global_init(CURL_GLOBAL_DEFAULT);
 
-    CURL_INIT;
+    HTMLFetcher *fetcher = fetch_and_parse("https://www.tek-stock.com/ut-020-/");
 
-    auto page = curl_easy_init();
+    if (!fetcher) {
+        std::cerr << "Failed to fetch and parse the URL." << std::endl;
+        curl_global_cleanup();
+        return 1;
+    }
 
-    const auto htmlCode = GetHtmlCode("https://codeforces.com/profile/hxomak", page);
+    GumboNode *root = fetcher->parse_tree->root;
 
-    Tag tag;
-    tag.MakeRoot(htmlCode);
+    auto tags = FindAllTagsAnysubval(root, GUMBO_TAG_A, "class", "productView-thumbnail-");
 
-    auto found = tag.FindTag(GUMBO_TAG_DIV, "class", "second-level-menu");
+    cout << "Found " << tags.size() << " <a> tags with class 'productView-thumbnail-'" << endl;
 
-    cout << found.GetHtmlView();
+    for (const auto &tag : tags) {
+        auto href = gumbo_get_attribute(&tag->v.element.attributes, "href");
+        if (href) {
+            cout << "Found href: " << href->value << endl;
+        }
+    }
 
-    GUMBO_CLEAN(tag);
-    CURL_CLEAN;
-
+    free_fetcher(fetcher);
+    curl_global_cleanup();
     return 0;
 }

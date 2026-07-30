@@ -30,10 +30,7 @@ set_target_properties(gumbo_dll PROPERTIES
 
 add_executable(project
         main.cc
-        src/tools.cc
-        src/Tag.cc
-        src/webmanager.cpp
-        src/parser.cc
+        
 )
 
 target_link_libraries(project PRIVATE gumbo curl gumbo_dll curl_dll)
