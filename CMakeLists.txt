@@ -25,7 +25,7 @@ set_target_properties(curl_dll PROPERTIES
 add_library(gumbo_dll STATIC IMPORTED)
 
 set_target_properties(gumbo_dll PROPERTIES
-        IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/libs/libcurl.dll.a"
+        IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/libs/libgumbo.dll.a"
 )
 
 add_executable(project

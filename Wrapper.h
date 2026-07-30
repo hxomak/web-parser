@@ -146,31 +146,6 @@ void free_fetcher(HTMLFetcher *fetcher) {
     free(fetcher);
 }
 
-GumboNode* find_element(GumboNode *root, GumboTag tag) {
-    if (root->type != GUMBO_NODE_ELEMENT) return NULL;
-    if (root->v.element.tag == tag) return root;
-    
-    GumboVector *children = &root->v.element.children;
-    for (size_t i = 0; i < children->length; i++) {
-        GumboNode *result = (GumboNode *)find_element((GumboNode *)children->data[i], tag);
-        if (result) return result;
-    }
-    return NULL;
-}
-
-const char* get_element_text(GumboNode *element) {
-    if (element->type != GUMBO_NODE_ELEMENT) return NULL;
-    
-    GumboVector *children = &element->v.element.children;
-    if (children->length > 0) {
-        GumboNode *text_node = (GumboNode *)children->data[0];
-        if (text_node->type == GUMBO_NODE_TEXT) {
-            return text_node->v.text.text;
-        }
-    }
-    return NULL;
-}
-
 namespace {
     void __GetText(const GumboNode *_tag, std::string &_res) {
         if (!_tag) {
