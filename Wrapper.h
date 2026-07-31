@@ -171,6 +171,7 @@ int reset_fetcher(HTMLFetcher *fetcher, const char *url) {
     }
     fetcher->doc = new_doc;
     curl_easy_setopt(fetcher->curl_handle, CURLOPT_URL, url);
+    curl_easy_setopt(fetcher->curl_handle, CURLOPT_WRITEDATA, new_doc);
     CURLcode res = curl_easy_perform(fetcher->curl_handle);
     if (res != CURLE_OK) {
         fprintf(stderr, "curl failed: %s\n", curl_easy_strerror(res));
