@@ -99,34 +99,99 @@ size_t write_callback(void *contents, size_t size, size_t nmemb, void *userp) {
 
 HTMLFetcher* fetch_and_parse(const char *url) {
     HTMLFetcher *fetcher = (HTMLFetcher *)malloc(sizeof(HTMLFetcher));
+    if (!fetcher)
+        return NULL;
     fetcher->doc = (FetchedDocument *)malloc(sizeof(FetchedDocument));
+    if (!fetcher->doc) {
+        free(fetcher);
+        return NULL;
+    }
     fetcher->doc->html_content = (char *)malloc(1);
+    if (!fetcher->doc->html_content) {
+        free(fetcher->doc);
+        free(fetcher);
+        return NULL;
+    }
     fetcher->doc->content_length = 0;
     fetcher->doc->url = strdup(url);
-    
+    if (!fetcher->doc->url) {
+        free(fetcher->doc->html_content);
+        free(fetcher->doc);
+        free(fetcher);
+        return NULL;
+    }
     fetcher->curl_handle = curl_easy_init();
-    if (!fetcher->curl_handle) return NULL;
-    
+    if (!fetcher->curl_handle) {
+        free(fetcher->doc->url);
+        free(fetcher->doc->html_content);
+        free(fetcher->doc);
+        free(fetcher);
+        return NULL;
+    }
     curl_easy_setopt(fetcher->curl_handle, CURLOPT_CAINFO, "config/cacert.pem");
     curl_easy_setopt(fetcher->curl_handle, CURLOPT_URL, url);
     curl_easy_setopt(fetcher->curl_handle, CURLOPT_WRITEFUNCTION, write_callback);
     curl_easy_setopt(fetcher->curl_handle, CURLOPT_WRITEDATA, fetcher->doc);
     curl_easy_setopt(fetcher->curl_handle, CURLOPT_TIMEOUT, 30L);
-    
+    curl_easy_setopt(fetcher->curl_handle, CURLOPT_USERAGENT, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
     CURLcode res = curl_easy_perform(fetcher->curl_handle);
     if (res != CURLE_OK) {
         fprintf(stderr, "curl failed: %s\n", curl_easy_strerror(res));
+        curl_easy_cleanup(fetcher->curl_handle);
+        free(fetcher->doc->url);
+        free(fetcher->doc->html_content);
+        free(fetcher->doc);
+        free(fetcher);
         return NULL;
     }
-    
     long http_code = 0;
     curl_easy_getinfo(fetcher->curl_handle, CURLINFO_RESPONSE_CODE, &http_code);
     fetcher->doc->http_status = http_code;
-    
-    // Parse the HTML
     fetcher->parse_tree = gumbo_parse(fetcher->doc->html_content);
-    
     return fetcher;
+}
+
+int reset_fetcher(HTMLFetcher *fetcher, const char *url) {
+    if (!fetcher)
+        return -1;
+    FetchedDocument *old_doc = fetcher->doc;
+    FetchedDocument *new_doc = (FetchedDocument *)malloc(sizeof(FetchedDocument));
+    if (!new_doc) return -1;
+    new_doc->html_content = (char *)malloc(1);
+    if (!new_doc->html_content) {
+        free(new_doc);
+        return -1;
+    }
+    new_doc->content_length = 0;
+    new_doc->url = strdup(url);
+    if (!new_doc->url) {
+        free(new_doc->html_content);
+        free(new_doc);
+        return -1;
+    }
+    fetcher->doc = new_doc;
+    curl_easy_setopt(fetcher->curl_handle, CURLOPT_URL, url);
+    CURLcode res = curl_easy_perform(fetcher->curl_handle);
+    if (res != CURLE_OK) {
+        fprintf(stderr, "curl failed: %s\n", curl_easy_strerror(res));
+        free(fetcher->doc->html_content);
+        free(fetcher->doc->url);
+        free(fetcher->doc);
+        fetcher->doc = old_doc;
+        return -1;
+    }
+    long http_code = 0;
+    curl_easy_getinfo(fetcher->curl_handle, CURLINFO_RESPONSE_CODE, &http_code);
+    fetcher->doc->http_status = http_code;
+    if (fetcher->parse_tree)
+        gumbo_destroy_output(&kGumboDefaultOptions, fetcher->parse_tree);
+    fetcher->parse_tree = gumbo_parse(fetcher->doc->html_content);
+    if (old_doc) {
+        free(old_doc->html_content);
+        free(old_doc->url);
+        free(old_doc);
+    }
+    return 0;
 }
 
 void free_fetcher(HTMLFetcher *fetcher) {
