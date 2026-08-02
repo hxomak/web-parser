@@ -29,7 +29,7 @@ set_target_properties(gumbo_dll PROPERTIES
 )
 
 add_executable(project
-        main.cc
+        src/main.cc
         
 )
 
