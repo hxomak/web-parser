@@ -569,7 +569,7 @@ namespace wp {
                               const std::string &attr_value) {
         if (tags.empty())
             return nullptr;
-        for (GumboNode* tag: tags) {
+        for (GumboNode *tag: tags) {
             if (!tag || tag->type != GUMBO_NODE_ELEMENT)
                 continue;
             if (tag->v.element.tag != tag_name)
@@ -583,6 +583,6 @@ namespace wp {
         return nullptr;
     }
 
-}
+} // namespace wp
 
 #endif // WEB_PARSER_H
